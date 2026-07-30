@@ -15,7 +15,7 @@ export type ArchetypeStore = {
 
 const function deriveSignature(components: { Component })
 	const componentNames = {}
-	for _, component in ipairs(components) do
+	for _, component in components do
 		table.insert(componentNames, component.name)
 	end
 
@@ -35,7 +35,7 @@ const function register(store: ArchetypeStore, components: { Component }): Arche
 	const archetype = archetype.create(components)
 	store.archetypes[signature] = archetype
 
-	for _, component in ipairs(components) do
+	for _, component in components do
 		const name = component.name
 		store.componentArchetypes[name] = store.componentArchetypes[name] or {}
 

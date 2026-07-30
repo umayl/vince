@@ -52,11 +52,11 @@ const function getMatchingArchetypes(world: World, targetComponents: { Component
 	const requiredCount = #targetComponents
 	const counts = {}
 
-	for _, component in ipairs(targetComponents) do
+	for _, component in targetComponents do
 		const archetypes = archetypeStore.getComponentArchetypes(world.archetypes, component.name)
 
 		if archetypes then
-			for _, archetype in ipairs(archetypes) do
+			for _, archetype in archetypes do
 				counts[archetype] = (counts[archetype] or 0) + 1
 			end
 		end
@@ -64,14 +64,14 @@ const function getMatchingArchetypes(world: World, targetComponents: { Component
 
 	const matching = {}
 
-	for archetypeCandidate, count in pairs(counts) do
+	for archetypeCandidate, count in counts do
 		if count ~= requiredCount then
 			continue
 		end
 
 		local excluded = false
 
-		for _, component in ipairs(excludedComponents) do
+		for _, component in excludedComponents do
 			if archetype.hasComponent(archetypeCandidate, component) then
 				excluded = true
 
@@ -120,7 +120,7 @@ const function createQueryIterator(world: World, targetComponents: { Component }
 
 				const accessors = table.create(#targetComponents)
 
-				for i, component in ipairs(targetComponents) do
+				for i, component in targetComponents do
 					accessors[i] = createAccessor(currentArchetype.columns[component.name], row)
 				end
 
@@ -145,25 +145,22 @@ const function createQuery(world: World, targetComponents: { Component }, exclud
 	function self.without(...: Component): Query
 		const newExcluded = table.clone(excludedComponents)
 
-		for _, component in ipairs { ... } do
+		for _, component in { ... } do
 			newExcluded[#newExcluded + 1] = component
 		end
 
 		return createQuery(world, targetComponents, newExcluded)
 	end
 
-	return table.freeze(setmetatable(
-		table.freeze(self),
-		table.freeze {
-			__iter = function()
-				return self.next()
-			end,
+	return table.freeze(setmetatable(self, {
+		__iter = function()
+			return self.next()
+		end,
 
-			__call = function()
-				return self.next()
-			end,
-		}
-	)) :: any
+		__call = function()
+			return self.next()
+		end,
+	})) :: any
 end
 
 const function query(world: World, ...: Component): Query

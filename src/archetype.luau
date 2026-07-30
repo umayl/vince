@@ -17,7 +17,7 @@ const function create(components: { Component }): Archetype
 	const componentSet = {}
 	const columns = {}
 
-	for _, component in ipairs(components) do
+	for _, component in components do
 		const name = component.name
 		componentSet[name] = true
 		columns[name] = {}
@@ -53,12 +53,12 @@ const function removeEntity(archetype: Archetype, entity: Entity)
 	if lastEntity ~= entity then
 		archetype.entityIndex[lastEntity] = index
 
-		for _, column in pairs(archetype.columns) do
+		for _, column in archetype.columns do
 			column[index] = column[lastIndex]
 			column[lastIndex] = nil
 		end
 	else
-		for _, column in pairs(archetype.columns) do
+		for _, column in archetype.columns do
 			column[index] = nil
 		end
 	end
@@ -101,6 +101,17 @@ const function getComponent(archetype: Archetype, entity: Entity, component: Com
 	}
 end
 
+const function getComponents(archetype: Archetype, entity: Entity): { Component }
+	local index = archetype.entityIndex[entity]
+	local components = {}
+
+	for _, column in archetype.columns do
+		components[#components + 1] = column[index]
+	end
+
+	return components
+end
+
 const function getComponentColumn(archetype: Archetype, component: Component)
 	return archetype.columns[component.name]
 end
@@ -118,6 +129,7 @@ return table.freeze {
 
 	insertComponent = insertComponent,
 	getComponent = getComponent,
+	getComponents = getComponents,
 	getComponentColumn = getComponentColumn,
 	hasComponent = hasComponent,
 }

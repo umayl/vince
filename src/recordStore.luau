@@ -25,7 +25,7 @@ const function insert(recordStore: RecordStore, entity: Entity, archetype: Arche
 	return newRecord
 end
 
-const function get(recordStore: RecordStore, entity: Entity): Record?
+const function get(recordStore: RecordStore, entity: Entity): Record
 	return recordStore.records[entity]
 end
 
