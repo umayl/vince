@@ -15,7 +15,7 @@ const function world(): World
 	const archetypes = archetypeStore.create()
 	const records = recordStore.create()
 
-	return {
+	return table.freeze {
 		entities = entities,
 		archetypes = archetypes,
 		records = records,
