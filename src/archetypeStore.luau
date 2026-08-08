@@ -1,17 +1,11 @@
 --!strict
---!native
---!optimize 2
 
+const types = require './types'
 const archetype = require './archetype'
-const component = require './component'
 
-type Archetype = archetype.Archetype
-type Component<T = unknown> = component.Component<T>
-
-export type ArchetypeStore = {
-	archetypes: { [string]: Archetype },
-	componentArchetypes: { [string]: { Archetype } },
-}
+type Component<T = unknown> = types.Component<T>
+type Archetype = types.Archetype
+type ArchetypeStore = types.ArchetypeStore
 
 const function deriveSignature(components: { Component })
 	const componentNames = {}
@@ -32,26 +26,26 @@ end
 const function register(store: ArchetypeStore, components: { Component }): Archetype
 	const signature = deriveSignature(components)
 
-	const archetype = archetype.create(components)
-	store.archetypes[signature] = archetype
+	const newArchetype = archetype.create(components)
+	store.archetypes[signature] = newArchetype
 
 	for _, component in components do
 		const name = component.name
 		store.componentArchetypes[name] = store.componentArchetypes[name] or {}
 
 		const archetypes = store.componentArchetypes[name]
-		archetypes[#archetypes + 1] = archetype
+		archetypes[#archetypes + 1] = newArchetype
 	end
 
-	return archetype
+	return newArchetype
 end
 
 const function getOrCreate(store: ArchetypeStore, components: { Component }): Archetype
 	const signature = deriveSignature(components)
 
-	const archetype = store.archetypes[signature]
+	const existingArchetype = store.archetypes[signature]
 	if archetype then
-		return archetype
+		return existingArchetype
 	end
 
 	return register(store, components)

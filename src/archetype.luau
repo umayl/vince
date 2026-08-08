@@ -1,17 +1,10 @@
 --!strict
 
-const component = require './component'
 const types = require './types'
 
 type Entity = types.Entity
-type Component<T = unknown> = component.Component<T>
-
-export type Archetype = {
-	componentSet: { [string]: boolean },
-	entities: { Entity },
-	entityIndex: { [Entity]: number },
-	columns: { [string]: { any } },
-}
+type Component<T = unknown> = types.Component<T>
+type Archetype = types.Archetype
 
 const function create(components: { Component }): Archetype
 	const componentSet = {}
@@ -102,8 +95,8 @@ const function getComponent(archetype: Archetype, entity: Entity, component: Com
 end
 
 const function getComponents(archetype: Archetype, entity: Entity): { Component }
-	local index = archetype.entityIndex[entity]
-	local components = {}
+	const index = archetype.entityIndex[entity]
+	const components = {}
 
 	for _, column in archetype.columns do
 		components[#components + 1] = column[index]

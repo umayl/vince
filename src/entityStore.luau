@@ -1,8 +1,8 @@
 --!strict
 
-export type EntityStore = {
-	nextEntityId: number,
-}
+const types = require './types'
+
+type EntityStore = types.EntityStore
 
 const function create(): EntityStore
 	return {
@@ -19,5 +19,6 @@ end
 
 return table.freeze {
 	create = create,
+
 	allocate = allocate,
 }

@@ -1,15 +1,8 @@
 --!strict
 
-const archetype = require './archetype'
+const types = require './types'
 
-type Archetype = archetype.Archetype
-
-export type Record = {
-	archetype: Archetype,
-	index: number,
-}
-
-const function record(archetype: Archetype, index: number): Record
+const function record(archetype: types.Archetype, index: number): types.Record
 	return {
 		archetype = archetype,
 		index = index,
