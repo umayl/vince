@@ -10,7 +10,7 @@ export type EntityStore = {
 
 -- Components
 
-export type Component<T = any> = {
+export type Component<T = unknown> = {
 	name: string,
 	value: T,
 }
