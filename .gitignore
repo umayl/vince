@@ -1,16 +1,6 @@
-# Ignore everything
-
 *
-
-# Allow directory traversal
-
 !*/
-
-# Track src
-
 !src/
 !src/**
-
-# Track this file
-
 !.gitignore
+!.pesde
