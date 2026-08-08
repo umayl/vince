@@ -6,11 +6,11 @@ const queryIterator = require './queryIterator'
 type Component<T = unknown> = types.Component<T>
 type World = types.World
 
-const function createQuery<A, B, C, D, E, F, G>(world: World, inclued: { Component }, excluded: { Component })
+const function createQuery<A, B, C, D, E, F, G>(world: World, included: { Component }, excluded: { Component })
 	const self = {}
 
 	function self.with(...: Component)
-		const newIncluded = table.clone(inclued)
+		const newIncluded = table.clone(included)
 
 		for _, component in { ... } do
 			newIncluded[#newIncluded + 1] = component
@@ -26,11 +26,11 @@ const function createQuery<A, B, C, D, E, F, G>(world: World, inclued: { Compone
 			newExcluded[#newExcluded + 1] = component
 		end
 
-		return createQuery(world, inclued, newExcluded)
+		return createQuery(world, included, newExcluded)
 	end
 
 	function self.iter(): types.QueryIterator<A, B, C, D, E, F, G>
-		return queryIterator(world, inclued, excluded)
+		return queryIterator(world, included, excluded)
 	end
 
 	return table.freeze(self)

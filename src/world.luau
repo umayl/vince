@@ -56,10 +56,10 @@ end
 
 -- Components
 
-const function insert(world: World, entity: Entity, ...)
+const function insert(self: World, entity: Entity, ...)
 	const componentsToInsert: { Component } = { ... }
 
-	const record = recordStore.get(world.records, entity)
+	const record = recordStore.get(self.records, entity)
 	const currentArchetype = record.archetype
 
 	for name in currentArchetype.componentSet do
@@ -83,14 +83,14 @@ const function insert(world: World, entity: Entity, ...)
 		end
 	end
 
-	const newArchetype = archetypeStore.getOrCreate(world.archetypes, componentsToInsert)
-	migrate(world, entity, newArchetype, componentsToInsert)
+	const newArchetype = archetypeStore.getOrCreate(self.archetypes, componentsToInsert)
+	migrate(self, entity, newArchetype, componentsToInsert)
 end
 
-const function remove(world: World, entity: Entity, ...: Component)
+const function remove(self: World, entity: Entity, ...: Component)
 	const componentsToRemove: { Component } = { ... }
 
-	const record = recordStore.get(world.records, entity)
+	const record = recordStore.get(self.records, entity)
 	const currentArchetype = record.archetype
 
 	const remainingComponents: { Component } = {}
@@ -116,13 +116,13 @@ const function remove(world: World, entity: Entity, ...: Component)
 		end
 	end
 
-	const newArchetype = archetypeStore.getOrCreate(world.archetypes, remainingComponents)
+	const newArchetype = archetypeStore.getOrCreate(self.archetypes, remainingComponents)
 
-	migrate(world, entity, newArchetype, remainingComponents)
+	migrate(self, entity, newArchetype, remainingComponents)
 end
 
-const function has(world: World, entity: Entity, ...: Component): boolean
-	const record = recordStore.get(world.records, entity)
+const function has(self: World, entity: Entity, ...: Component): boolean
+	const record = recordStore.get(self.records, entity)
 
 	if not record then
 		return false
@@ -139,8 +139,8 @@ const function has(world: World, entity: Entity, ...: Component): boolean
 	return true
 end
 
-const function get<T>(world: World, entity: Entity, component: Component<T>): types.ComponentAccessor<T>?
-	const record = recordStore.get(world.records, entity)
+const function get(self: World, entity: Entity, component: Component): types.ComponentAccessor?
+	const record = recordStore.get(self.records, entity)
 
 	if not record then
 		return
@@ -158,11 +158,11 @@ end
 
 -- Entity Lifecycle
 
-const function spawn(world: World, entity: Entity)
-	const records = world.records
-	const rootArchetype = world.rootArchetype
+const function spawn(self: World)
+	const records = self.records
+	const rootArchetype = self.rootArchetype
 
-	const newEntity = entityStore.allocate(world.entities)
+	const newEntity = entityStore.allocate(self.entities)
 
 	const newEntityIndex = archetype.addEntity(rootArchetype, newEntity)
 	recordStore.insert(records, newEntity, rootArchetype, newEntityIndex)
@@ -170,29 +170,29 @@ const function spawn(world: World, entity: Entity)
 	return newEntity
 end
 
-const function despawn(world: World, entity: Entity)
-	const record = recordStore.get(world.records, entity)
+const function despawn(self: World, entity: Entity)
+	const record = recordStore.get(self.records, entity)
 	if not record then
 		return
 	end
 
 	archetype.removeEntity(record.archetype, entity)
-	recordStore.remove(world.records, entity)
+	recordStore.remove(self.records, entity)
 end
 
-const function clear(world: World)
-	table.clear(world.records.records)
-	table.clear(world.archetypes.archetypes)
-	table.clear(world.archetypes.componentArchetypes)
-	table.clear(world.rootArchetype.entities)
-	table.clear(world.rootArchetype.entityIndex)
+const function clear(self: World)
+	table.clear(self.records.records)
+	table.clear(self.archetypes.archetypes)
+	table.clear(self.archetypes.componentArchetypes)
+	table.clear(self.rootArchetype.entities)
+	table.clear(self.rootArchetype.entityIndex)
 
-	for _, column in world.rootArchetype.columns do
+	for _, column in self.rootArchetype.columns do
 		table.clear(column)
 	end
 
-	world.entities.nextEntityId = 0
-	world.archetypes.archetypes[ROOT_ARCHETYPE_KEY] = world.rootArchetype
+	self.entities.nextEntityId = 0
+	self.archetypes.archetypes[ROOT_ARCHETYPE_KEY] = self.rootArchetype
 end
 
 -- World
