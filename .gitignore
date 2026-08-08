@@ -1,6 +1,9 @@
 *
-!*/
 !src/
 !src/**
 !.gitignore
-!.pesde
+!.pesde/
+!.pesde/**
+!pesde.toml
+!selene.toml
+!stylua.toml
