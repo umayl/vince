@@ -1,0 +1,10 @@
+name = "umayl/vince"
+version = "0.1.0"
+description = "proprietary ecs lib for owari, made public."
+license = "MIT"
+repository = "hhttps://github.com/umayl/vince"
+
+[target]
+environment = "roblox"
+lib = "src/init.luau"
+build_files = ["src"]
