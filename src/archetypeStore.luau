@@ -7,13 +7,16 @@ type Component<T = unknown> = types.Component<T>
 type Archetype = types.Archetype
 type ArchetypeStore = types.ArchetypeStore
 
-const function deriveSignature(components: { Component })
-	const componentNames = {}
+const function deriveSignature(components: { Component }): string
+	const componentNames = table.create(#components)
+
 	for _, component in components do
-		table.insert(componentNames, component.name)
+		componentNames[#componentNames + 1] = component.name
 	end
 
-	return table.concat(componentNames)
+	table.sort(componentNames)
+
+	return table.concat(componentNames, '|')
 end
 
 const function create(): ArchetypeStore
@@ -44,7 +47,7 @@ const function getOrCreate(store: ArchetypeStore, components: { Component }): Ar
 	const signature = deriveSignature(components)
 
 	const existingArchetype = store.archetypes[signature]
-	if archetype then
+	if existingArchetype then
 		return existingArchetype
 	end
 

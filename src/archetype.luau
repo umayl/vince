@@ -12,6 +12,7 @@ const function create(components: { Component }): Archetype
 
 	for _, component in components do
 		const name = component.name
+
 		componentSet[name] = true
 		columns[name] = {}
 	end
@@ -26,13 +27,14 @@ end
 
 const function addEntity(archetype: Archetype, entity: Entity): number
 	const index = #archetype.entities + 1
+
 	archetype.entities[index] = entity
 	archetype.entityIndex[entity] = index
 
 	return index
 end
 
-const function removeEntity(archetype: Archetype, entity: Entity)
+const function removeEntity(archetype: Archetype, entity: Entity): (Entity?, number?)
 	const index = archetype.entityIndex[entity]
 	if not index then
 		return
@@ -40,8 +42,10 @@ const function removeEntity(archetype: Archetype, entity: Entity)
 
 	const lastIndex = #archetype.entities
 	const lastEntity = archetype.entities[lastIndex]
+
 	archetype.entities[index] = lastEntity
 	archetype.entities[lastIndex] = nil
+	archetype.entityIndex[entity] = nil
 
 	if lastEntity ~= entity then
 		archetype.entityIndex[lastEntity] = index
@@ -50,13 +54,15 @@ const function removeEntity(archetype: Archetype, entity: Entity)
 			column[index] = column[lastIndex]
 			column[lastIndex] = nil
 		end
-	else
-		for _, column in archetype.columns do
-			column[index] = nil
-		end
+
+		return lastEntity, index
 	end
 
-	archetype.entityIndex[entity] = nil
+	for _, column in archetype.columns do
+		column[index] = nil
+	end
+
+	return
 end
 
 const function getEntities(archetype: Archetype)
@@ -65,11 +71,13 @@ end
 
 const function insertComponent(archetype: Archetype, entity: Entity, component: Component)
 	const column = archetype.columns[component.name]
+
 	if not column then
 		return
 	end
 
 	const index = archetype.entityIndex[entity]
+
 	if not index then
 		return
 	end
@@ -79,11 +87,13 @@ end
 
 const function getComponent(archetype: Archetype, entity: Entity, component: Component): Component?
 	const column = archetype.columns[component.name]
+
 	if not column then
 		return
 	end
 
 	const index = archetype.entityIndex[entity]
+
 	if not index then
 		return
 	end
@@ -94,15 +104,20 @@ const function getComponent(archetype: Archetype, entity: Entity, component: Com
 	}
 end
 
-const function getComponents(archetype: Archetype, entity: Entity): { Component }
-	const index = archetype.entityIndex[entity]
-	const components = {}
+const function getComponentValue(archetype: Archetype, entity: Entity, componentName: string): any
+	const column = archetype.columns[componentName]
 
-	for _, column in archetype.columns do
-		components[#components + 1] = column[index]
+	if not column then
+		return nil
 	end
 
-	return components
+	const index = archetype.entityIndex[entity]
+
+	if not index then
+		return nil
+	end
+
+	return column[index]
 end
 
 const function getComponentColumn(archetype: Archetype, component: Component)
@@ -122,7 +137,7 @@ return table.freeze {
 
 	insertComponent = insertComponent,
 	getComponent = getComponent,
-	getComponents = getComponents,
+	getComponentValue = getComponentValue,
 	getComponentColumn = getComponentColumn,
 	hasComponent = hasComponent,
 }
