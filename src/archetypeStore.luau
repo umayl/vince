@@ -1,14 +1,14 @@
 --!strict
 
-const types = require './types'
-const archetype = require './archetype'
+local archetype = require './archetype'
+local types = require './types'
 
 type Component<T = unknown> = types.Component<T>
 type Archetype = types.Archetype
 type ArchetypeStore = types.ArchetypeStore
 
-const function deriveSignature(components: { Component }): string
-	const componentNames = table.create(#components)
+local function deriveSignature(components: { Component }): string
+	local componentNames = table.create(#components)
 
 	for _, component in components do
 		componentNames[#componentNames + 1] = component.name
@@ -19,34 +19,34 @@ const function deriveSignature(components: { Component }): string
 	return table.concat(componentNames, '|')
 end
 
-const function create(): ArchetypeStore
+local function create(): ArchetypeStore
 	return {
 		archetypes = {},
 		componentArchetypes = {},
 	}
 end
 
-const function register(store: ArchetypeStore, components: { Component }): Archetype
-	const signature = deriveSignature(components)
+local function register(store: ArchetypeStore, components: { Component }): Archetype
+	local signature = deriveSignature(components)
 
-	const newArchetype = archetype.create(components)
+	local newArchetype = archetype.create(components)
 	store.archetypes[signature] = newArchetype
 
 	for _, component in components do
-		const name = component.name
+		local name = component.name
 		store.componentArchetypes[name] = store.componentArchetypes[name] or {}
 
-		const archetypes = store.componentArchetypes[name]
+		local archetypes = store.componentArchetypes[name]
 		archetypes[#archetypes + 1] = newArchetype
 	end
 
 	return newArchetype
 end
 
-const function getOrCreate(store: ArchetypeStore, components: { Component }): Archetype
-	const signature = deriveSignature(components)
+local function getOrCreate(store: ArchetypeStore, components: { Component }): Archetype
+	local signature = deriveSignature(components)
 
-	const existingArchetype = store.archetypes[signature]
+	local existingArchetype = store.archetypes[signature]
 	if existingArchetype then
 		return existingArchetype
 	end
@@ -54,7 +54,7 @@ const function getOrCreate(store: ArchetypeStore, components: { Component }): Ar
 	return register(store, components)
 end
 
-const function getComponentArchetypes(store: ArchetypeStore, componentName: string): { Archetype }?
+local function getComponentArchetypes(store: ArchetypeStore, componentName: string): { Archetype }?
 	return store.componentArchetypes[componentName]
 end
 

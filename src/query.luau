@@ -1,16 +1,16 @@
 --!strict
 
-const types = require './types'
-const queryIterator = require './queryIterator'
+local queryIterator = require './queryIterator'
+local types = require './types'
 
 type Component<T = unknown> = types.Component<T>
 type World = types.World
 
-const function createQuery<A, B, C, D, E, F, G>(world: World, included: { Component }, excluded: { Component })
-	const self = {}
+local function createQuery<A, B, C, D, E, F, G>(world: World, included: { Component }, excluded: { Component })
+	local self = {}
 
 	function self.with(...: Component)
-		const newIncluded = table.clone(included)
+		local newIncluded = table.clone(included)
 
 		for _, component in { ... } do
 			newIncluded[#newIncluded + 1] = component
@@ -20,7 +20,7 @@ const function createQuery<A, B, C, D, E, F, G>(world: World, included: { Compon
 	end
 
 	function self.without(...: Component)
-		const newExcluded = table.clone(excluded)
+		local newExcluded = table.clone(excluded)
 
 		for _, component in { ... } do
 			newExcluded[#newExcluded + 1] = component
@@ -36,7 +36,7 @@ const function createQuery<A, B, C, D, E, F, G>(world: World, included: { Compon
 	return table.freeze(self)
 end
 
-const function query(world: World, ...: Component)
+local function query(world: World, ...: Component)
 	return createQuery(world, { ... }, {})
 end
 

@@ -1,8 +1,8 @@
 --!strict
 
-const component = require '@self/component'
-const types = require '@self/types'
-const world = require '@self/world'
+local component = require '@self/component'
+local types = require '@self/types'
+local world = require '@self/world'
 
 export type Entity = types.Entity
 export type Component<T = unknown> = types.Component<T>

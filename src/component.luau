@@ -1,8 +1,8 @@
 --!strict
 
-const types = require './types'
+local types = require './types'
 
-const function component<T>(name: string, initialValue: T): types.Component<T>
+local function component<T>(name: string, initialValue: T): types.Component<T>
 	return {
 		name = name,
 		value = initialValue,

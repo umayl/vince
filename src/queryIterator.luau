@@ -1,21 +1,21 @@
 --!strict
 
-const archetype = require './archetype'
-const types = require './types'
-const queryMatcher = require './queryMatcher'
-const componentAccessor = require './componentAccessor'
+local archetype = require './archetype'
+local componentAccessor = require './componentAccessor'
+local queryMatcher = require './queryMatcher'
+local types = require './types'
 
 type Entity = types.Entity
 type Component = types.Component
 type Archetype = types.Archetype
 type World = types.World
 
-const function queryIterator<A, B, C, D, E, F, G>(
+local function queryIterator<A, B, C, D, E, F, G>(
 	world: World,
 	includedComponents: { Component },
 	excludedComponents: { Component }
 ): types.QueryIterator<A, B, C, D, E, F, G>
-	const matchingArchetypes = queryMatcher(world, includedComponents, excludedComponents)
+	local matchingArchetypes = queryMatcher(world, includedComponents, excludedComponents)
 
 	local archetypeIndex = 1
 	local entityIndex = 1
@@ -39,13 +39,13 @@ const function queryIterator<A, B, C, D, E, F, G>(
 				continue
 			end
 
-			const currentEntity = currentEntities[entityIndex]
+			local currentEntity = currentEntities[entityIndex]
 
 			if currentEntity and currentArchetype then
-				const row = currentArchetype.entityIndex[currentEntity]
+				local row = currentArchetype.entityIndex[currentEntity]
 				entityIndex += 1
 
-				const accessors = table.create(#includedComponents)
+				local accessors = table.create(#includedComponents)
 				for i, component in includedComponents do
 					accessors[i] = componentAccessor(currentArchetype.columns[component.name], row)
 				end
