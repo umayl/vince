@@ -15,6 +15,39 @@ local function queryIterator<A, B, C, D, E, F, G>(
 	includedComponents: { Component },
 	excludedComponents: { Component }
 ): types.QueryIterator<A, B, C, D, E, F, G>
+	if #includedComponents == 0 then
+		local records = world.records.records
+		local nextEntity: Entity?
+
+		return function()
+			while true do
+				local entity = next(records, nextEntity)
+				nextEntity = entity
+
+				if not entity then
+					return
+				end
+
+				local record = records[entity]
+				local currentArchetype = record.archetype
+
+				local excluded = false
+
+				for _, component in excludedComponents do
+					if currentArchetype.componentSet[component.name] then
+						excluded = true
+
+						break
+					end
+				end
+
+				if not excluded then
+					return entity
+				end
+			end
+		end :: any
+	end
+
 	local matchingArchetypes = queryMatcher(world, includedComponents, excludedComponents)
 
 	local archetypeIndex = 1
@@ -46,6 +79,7 @@ local function queryIterator<A, B, C, D, E, F, G>(
 				entityIndex += 1
 
 				local accessors = table.create(#includedComponents)
+
 				for i, component in includedComponents do
 					accessors[i] = componentAccessor(currentArchetype.columns[component.name], row)
 				end

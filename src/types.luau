@@ -46,17 +46,19 @@ export type ArchetypeStore = {
 
 export type QueryIterator<A, B, C, D, E, F, G> = (
 ) -> (
-	Entity,
-	ComponentAccessor<A>,
-	ComponentAccessor<B>,
-	ComponentAccessor<C>,
-	ComponentAccessor<D>,
-	ComponentAccessor<E>,
-	ComponentAccessor<F>,
-	ComponentAccessor<G>
+	Entity?,
+	ComponentAccessor?,
+	ComponentAccessor?,
+	ComponentAccessor?,
+	ComponentAccessor?,
+	ComponentAccessor?,
+	ComponentAccessor?,
+	ComponentAccessor?
 )
 
 export type Query<A = unknown, B = unknown, C = unknown, D = unknown, E = unknown, F = unknown, G = unknown> = {
+	with: (self: Query<A, B, C, D, E, F, G>, ...Component) -> Query<A, B, C, D, E, F, G>,
+
 	without: (self: Query<A, B, C, D, E, F, G>, ...Component) -> Query<A, B, C, D, E, F, G>,
 
 	iter: (self: Query<A, B, C, D, E, F, G>) -> QueryIterator<A, B, C, D, E, F, G>,
@@ -80,61 +82,60 @@ export type World = {
 	spawn: (self: World) -> Entity,
 	despawn: (self: World, entity: Entity) -> (),
 	clear: (self: World) -> (),
+	exists: (self: World, entity: Entity) -> boolean,
 
 	-- Components
 	insert: (self: World, entity: Entity, ...Component) -> (),
 	remove: (self: World, entity: Entity, ...Component) -> (),
 	has: (self: World, entity: Entity, ...Component) -> boolean,
 	get: <T>(self: World, entity: Entity, component: Component<T>) -> ComponentAccessor<T>?,
-	exists: (self: World, entity: Entity) -> boolean,
 
 	-- Queries
-	query: (<A>(self: World, a: Component<A>) -> Query<A, unknown, unknown, unknown, unknown, unknown, unknown>)
-		& (<A, B>(
-			self: World,
-			a: Component<A>,
-			b: Component<B>
-		) -> Query<A, B, unknown, unknown, unknown, unknown, unknown>)
-		& (<A, B, C>(
-			self: World,
-			a: Component<A>,
-			b: Component<B>,
-			c: Component<C>
-		) -> Query<A, B, C, unknown, unknown, unknown, unknown>)
-		& (<A, B, C, D>(
-			self: World,
-			a: Component<A>,
-			b: Component<B>,
-			c: Component<C>,
-			d: Component<D>
-		) -> Query<A, B, C, D, unknown, unknown, unknown>)
-		& (<A, B, C, D, E>(
-			self: World,
-			a: Component<A>,
-			b: Component<B>,
-			c: Component<C>,
-			d: Component<D>,
-			e: Component<E>
-		) -> Query<A, B, C, D, E, unknown, unknown>)
-		& (<A, B, C, D, E, F>(
-			self: World,
-			a: Component<A>,
-			b: Component<B>,
-			c: Component<C>,
-			d: Component<D>,
-			e: Component<E>,
-			f: Component<F>
-		) -> Query<A, B, C, D, E, F, unknown>)
-		& (<A, B, C, D, E, F, G>(
-			self: World,
-			a: Component<A>,
-			b: Component<B>,
-			c: Component<C>,
-			d: Component<D>,
-			e: Component<E>,
-			f: Component<F>,
-			g: Component<G>
-		) -> Query<A, B, C, D, E, F, G>),
+	query: ((
+		self: World
+	) -> Query<unknown, unknown, unknown, unknown, unknown, unknown, unknown>) & (<A>(
+		self: World,
+		a: Component<A>
+	) -> Query<A, unknown, unknown, unknown, unknown, unknown, unknown>) & (<A, B>(
+		self: World,
+		a: Component<A>,
+		b: Component<B>
+	) -> Query<A, B, unknown, unknown, unknown, unknown, unknown>) & (<A, B, C>(
+		self: World,
+		a: Component<A>,
+		b: Component<B>,
+		c: Component<C>
+	) -> Query<A, B, C, unknown, unknown, unknown, unknown>) & (<A, B, C, D>(
+		self: World,
+		a: Component<A>,
+		b: Component<B>,
+		c: Component<C>,
+		d: Component<D>
+	) -> Query<A, B, C, D, unknown, unknown, unknown>) & (<A, B, C, D, E>(
+		self: World,
+		a: Component<A>,
+		b: Component<B>,
+		c: Component<C>,
+		d: Component<D>,
+		e: Component<E>
+	) -> Query<A, B, C, D, E, unknown, unknown>) & (<A, B, C, D, E, F>(
+		self: World,
+		a: Component<A>,
+		b: Component<B>,
+		c: Component<C>,
+		d: Component<D>,
+		e: Component<E>,
+		f: Component<F>
+	) -> Query<A, B, C, D, E, F, unknown>) & (<A, B, C, D, E, F, G>(
+		self: World,
+		a: Component<A>,
+		b: Component<B>,
+		c: Component<C>,
+		d: Component<D>,
+		e: Component<E>,
+		f: Component<F>,
+		g: Component<G>
+	) -> Query<A, B, C, D, E, F, G>),
 }
 
 export type WorldHooks = {
