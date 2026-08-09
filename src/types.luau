@@ -65,11 +65,16 @@ export type Query<A = unknown, B = unknown, C = unknown, D = unknown, E = unknow
 -- World
 
 export type World = {
+	-- stores
 	entities: EntityStore,
 	archetypes: ArchetypeStore,
 	records: RecordStore,
 
+	-- Root archetype
 	rootArchetype: Archetype,
+
+	-- Hooks
+	hooks: WorldHooks,
 
 	-- Entity lifecycle
 	spawn: (self: World) -> Entity,
@@ -81,6 +86,7 @@ export type World = {
 	remove: (self: World, entity: Entity, ...Component) -> (),
 	has: (self: World, entity: Entity, ...Component) -> boolean,
 	get: <T>(self: World, entity: Entity, component: Component<T>) -> ComponentAccessor<T>?,
+	exists: (self: World, entity: Entity) -> boolean,
 
 	-- Queries
 	query: (<A>(self: World, a: Component<A>) -> Query<A, unknown, unknown, unknown, unknown, unknown, unknown>)
@@ -129,6 +135,14 @@ export type World = {
 			f: Component<F>,
 			g: Component<G>
 		) -> Query<A, B, C, D, E, F, G>),
+}
+
+export type WorldHooks = {
+	insert: { (entity: Entity, component: Component) -> () },
+	remove: { (entity: Entity, component: Component) -> () },
+	change: { (entity: Entity, componentName: string) -> () },
+	despawn: { (entity: Entity) -> () },
+	clear: { () -> () },
 }
 
 return nil

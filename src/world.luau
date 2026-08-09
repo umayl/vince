@@ -7,6 +7,7 @@ local entityStore = require './entityStore'
 local query = require './query'
 local recordStore = require './recordStore'
 local types = require './types'
+local worldHooks = require './worldHooks'
 
 type Entity = types.Entity
 type Component<T = unknown> = types.Component
@@ -30,6 +31,7 @@ local function migrate(world: World, entity: Entity, newArchetype: Archetype, co
 	local movedEntity, movedIndex = archetype.removeEntity(oldArchetype, entity)
 	if movedEntity then
 		local movedRecord = recordStore.get(world.records, movedEntity)
+
 		movedRecord.index = movedIndex :: number
 	end
 
@@ -60,6 +62,10 @@ local function insert(self: World, entity: Entity, ...)
 	local componentsToInsert: { Component } = { ... }
 
 	local record = recordStore.get(self.records, entity)
+	if not record then
+		return
+	end
+
 	local currentArchetype = record.archetype
 
 	for name in currentArchetype.componentSet do
@@ -83,17 +89,40 @@ local function insert(self: World, entity: Entity, ...)
 		end
 	end
 
+	-- Remember which components are actually new.
+	local insertedComponents: { Component } = {}
+
+	for _, component in { ... } do
+		if not archetype.hasComponent(currentArchetype, component) then
+			insertedComponents[#insertedComponents + 1] = component
+		end
+	end
+
+	if #insertedComponents == 0 then
+		return
+	end
+
 	local newArchetype = archetypeStore.getOrCreate(self.archetypes, componentsToInsert)
 	migrate(self, entity, newArchetype, componentsToInsert)
+
+	for _, component in insertedComponents do
+		for _, callback in self.hooks.insert do
+			callback(entity, component)
+		end
+	end
 end
 
 local function remove(self: World, entity: Entity, ...: Component)
 	local componentsToRemove: { Component } = { ... }
 
 	local record = recordStore.get(self.records, entity)
-	local currentArchetype = record.archetype
+	if not record then
+		return
+	end
 
+	local currentArchetype = record.archetype
 	local remainingComponents: { Component } = {}
+	local removedComponents: { Component } = {}
 
 	for name in currentArchetype.componentSet do
 		local shouldRemove = false
@@ -108,22 +137,37 @@ local function remove(self: World, entity: Entity, ...: Component)
 			break
 		end
 
-		if not shouldRemove then
+		local value = archetype.getComponentValue(currentArchetype, entity, name)
+
+		if shouldRemove then
+			removedComponents[#removedComponents + 1] = {
+				name = name,
+				value = value,
+			}
+		else
 			remainingComponents[#remainingComponents + 1] = {
 				name = name,
-				value = archetype.getComponentValue(currentArchetype, entity, name),
+				value = value,
 			}
 		end
 	end
 
-	local newArchetype = archetypeStore.getOrCreate(self.archetypes, remainingComponents)
+	if #removedComponents == 0 then
+		return
+	end
 
+	local newArchetype = archetypeStore.getOrCreate(self.archetypes, remainingComponents)
 	migrate(self, entity, newArchetype, remainingComponents)
+
+	for _, component in removedComponents do
+		for _, callback in self.hooks.remove do
+			callback(entity, component)
+		end
+	end
 end
 
 local function has(self: World, entity: Entity, ...: Component): boolean
 	local record = recordStore.get(self.records, entity)
-
 	if not record then
 		return false
 	end
@@ -141,7 +185,6 @@ end
 
 local function get(self: World, entity: Entity, component: Component): types.ComponentAccessor?
 	local record = recordStore.get(self.records, entity)
-
 	if not record then
 		return
 	end
@@ -153,17 +196,24 @@ local function get(self: World, entity: Entity, component: Component): types.Com
 		return
 	end
 
-	return componentAccessor(column, record.index)
+	return componentAccessor(column, record.index, function()
+		for _, callback in self.hooks.change do
+			callback(entity, component.name)
+		end
+	end)
 end
 
 -- Entity Lifecycle
 
-local function spawn(self: World)
+local function exists(self: World, entity: Entity): boolean
+	return recordStore.get(self.records, entity) ~= nil
+end
+
+local function spawn(self: World): Entity
 	local records = self.records
 	local rootArchetype = self.rootArchetype
 
 	local newEntity = entityStore.allocate(self.entities)
-
 	local newEntityIndex = archetype.addEntity(rootArchetype, newEntity)
 	recordStore.insert(records, newEntity, rootArchetype, newEntityIndex)
 
@@ -178,12 +228,17 @@ local function despawn(self: World, entity: Entity)
 
 	archetype.removeEntity(record.archetype, entity)
 	recordStore.remove(self.records, entity)
+
+	for _, callback in self.hooks.despawn do
+		callback(entity)
+	end
 end
 
 local function clear(self: World)
 	table.clear(self.records.records)
 	table.clear(self.archetypes.archetypes)
 	table.clear(self.archetypes.componentArchetypes)
+
 	table.clear(self.rootArchetype.entities)
 	table.clear(self.rootArchetype.entityIndex)
 
@@ -193,6 +248,10 @@ local function clear(self: World)
 
 	self.entities.nextEntityId = 0
 	self.archetypes.archetypes[ROOT_ARCHETYPE_KEY] = self.rootArchetype
+
+	for _, callback in self.hooks.clear do
+		callback()
+	end
 end
 
 -- World
@@ -203,6 +262,7 @@ local function world(): World
 	local records = recordStore.create()
 
 	local rootArchetype = archetype.create {}
+	local hooks = worldHooks()
 
 	return table.freeze {
 		entities = entities,
@@ -210,11 +270,13 @@ local function world(): World
 		records = records,
 
 		rootArchetype = rootArchetype,
+		hooks = hooks,
 
 		-- Entity lifecycle
 		spawn = spawn,
 		despawn = despawn,
 		clear = clear,
+		exists = exists,
 
 		-- Components
 		insert = insert,
