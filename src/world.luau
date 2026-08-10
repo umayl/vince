@@ -10,9 +10,15 @@ local types = require './types'
 local worldHooks = require './worldHooks'
 
 type Entity = types.Entity
-type Component<T = unknown> = types.Component
+type Component<T = unknown> = types.Component<T>
 type Archetype = types.Archetype
+
 type World = types.World
+type WorldInsertHook = types.WorldInsertHook
+type WorldRemoveHook = types.WorldRemoveHook
+type WorldChangeHook = types.WorldChangeHook
+type WorldDespawnHook = types.WorldDespawnHook
+type WorldClearHook = types.WorldClearHook
 
 local ROOT_ARCHETYPE_KEY = ''
 
@@ -264,6 +270,26 @@ local function world(): World
 	local rootArchetype = archetype.create {}
 	local hooks = worldHooks()
 
+	local function onInsert(self: World, callback: WorldInsertHook)
+		self.hooks.insert[#self.hooks.insert + 1] = callback
+	end
+
+	local function onRemove(self: World, callback: WorldRemoveHook)
+		self.hooks.remove[#self.hooks.remove + 1] = callback
+	end
+
+	local function onChange(self: World, callback: WorldChangeHook)
+		self.hooks.change[#self.hooks.change + 1] = callback
+	end
+
+	local function onDespawn(self: World, callback: WorldDespawnHook)
+		self.hooks.despawn[#self.hooks.despawn + 1] = callback
+	end
+
+	local function onClear(self: World, callback: WorldClearHook)
+		self.hooks.clear[#self.hooks.clear + 1] = callback
+	end
+
 	return table.freeze {
 		entities = entities,
 		archetypes = archetypes,
@@ -283,6 +309,13 @@ local function world(): World
 		remove = remove,
 		has = has,
 		get = get,
+
+		-- Hooks
+		onInsert = onInsert,
+		onRemove = onRemove,
+		onChange = onChange,
+		onDespawn = onDespawn,
+		onClear = onClear,
 
 		-- Queries
 		query = query,

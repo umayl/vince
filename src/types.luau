@@ -91,9 +91,7 @@ export type World = {
 	get: <T>(self: World, entity: Entity, component: Component<T>) -> ComponentAccessor<T>?,
 
 	-- Queries
-	query: ((
-		self: World
-	) -> Query<unknown, unknown, unknown, unknown, unknown, unknown, unknown>) & (<A>(
+	query: ((self: World) -> Query<unknown, unknown, unknown, unknown, unknown, unknown, unknown>) & (<A>(
 		self: World,
 		a: Component<A>
 	) -> Query<A, unknown, unknown, unknown, unknown, unknown, unknown>) & (<A, B>(
@@ -138,12 +136,18 @@ export type World = {
 	) -> Query<A, B, C, D, E, F, G>),
 }
 
+export type WorldInsertHook = (entity: Entity, component: Component) -> ()
+export type WorldRemoveHook = (entity: Entity, component: Component) -> ()
+export type WorldChangeHook = (entity: Entity, componentName: string) -> ()
+export type WorldDespawnHook = (entity: Entity) -> ()
+export type WorldClearHook = () -> ()
+
 export type WorldHooks = {
-	insert: { (entity: Entity, component: Component) -> () },
-	remove: { (entity: Entity, component: Component) -> () },
-	change: { (entity: Entity, componentName: string) -> () },
-	despawn: { (entity: Entity) -> () },
-	clear: { () -> () },
+	insert: { WorldInsertHook },
+	remove: { WorldRemoveHook },
+	change: { WorldChangeHook },
+	despawn: { WorldDespawnHook },
+	clear: { WorldClearHook },
 }
 
 return nil
