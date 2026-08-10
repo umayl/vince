@@ -64,25 +64,50 @@ export type Query<A = unknown, B = unknown, C = unknown, D = unknown, E = unknow
 	iter: (self: Query<A, B, C, D, E, F, G>) -> QueryIterator<A, B, C, D, E, F, G>,
 }
 
+-- World Hooks
+
+export type WorldHookDisconnect = () -> ()
+
+export type WorldInsertHook = (entity: Entity, component: Component) -> ()
+export type WorldRemoveHook = (entity: Entity, component: Component) -> ()
+export type WorldChangeHook = (entity: Entity, componentName: string) -> ()
+export type WorldDespawnHook = (entity: Entity) -> ()
+export type WorldClearHook = () -> ()
+
+export type WorldHooks = {
+	insert: { WorldInsertHook },
+	remove: { WorldRemoveHook },
+	change: { WorldChangeHook },
+	despawn: { WorldDespawnHook },
+	clear: { WorldClearHook },
+}
+
 -- World
 
 export type World = {
 	-- stores
-	entities: EntityStore,
-	archetypes: ArchetypeStore,
-	records: RecordStore,
+	_entities: EntityStore,
+	_archetypes: ArchetypeStore,
+	_records: RecordStore,
 
 	-- Root archetype
-	rootArchetype: Archetype,
+	_rootArchetype: Archetype,
 
-	-- Hooks
-	hooks: WorldHooks,
+	-- Hook storage
+	_hooks: WorldHooks,
 
 	-- Entity lifecycle
 	spawn: (self: World) -> Entity,
 	despawn: (self: World, entity: Entity) -> (),
 	clear: (self: World) -> (),
 	exists: (self: World, entity: Entity) -> boolean,
+
+	-- Hooks
+	onInsert: (self: World, callback: WorldInsertHook) -> WorldHookDisconnect,
+	onRemove: (self: World, callback: WorldRemoveHook) -> WorldHookDisconnect,
+	onChange: (self: World, callback: WorldChangeHook) -> WorldHookDisconnect,
+	onDespawn: (self: World, callback: WorldDespawnHook) -> WorldHookDisconnect,
+	onClear: (self: World, callback: WorldClearHook) -> WorldHookDisconnect,
 
 	-- Components
 	insert: (self: World, entity: Entity, ...Component) -> (),
@@ -134,20 +159,6 @@ export type World = {
 		f: Component<F>,
 		g: Component<G>
 	) -> Query<A, B, C, D, E, F, G>),
-}
-
-export type WorldInsertHook = (entity: Entity, component: Component) -> ()
-export type WorldRemoveHook = (entity: Entity, component: Component) -> ()
-export type WorldChangeHook = (entity: Entity, componentName: string) -> ()
-export type WorldDespawnHook = (entity: Entity) -> ()
-export type WorldClearHook = () -> ()
-
-export type WorldHooks = {
-	insert: { WorldInsertHook },
-	remove: { WorldRemoveHook },
-	change: { WorldChangeHook },
-	despawn: { WorldDespawnHook },
-	clear: { WorldClearHook },
 }
 
 return nil

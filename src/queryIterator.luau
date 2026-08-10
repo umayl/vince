@@ -16,7 +16,7 @@ local function queryIterator<A, B, C, D, E, F, G>(
 	excludedComponents: { Component }
 ): types.QueryIterator<A, B, C, D, E, F, G>
 	if #includedComponents == 0 then
-		local records = world.records.records
+		local records = world._records.records
 		local nextEntity: Entity?
 
 		return function()

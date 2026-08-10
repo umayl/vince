@@ -3,7 +3,7 @@
 local types = require './types'
 
 const function worldHooks(): types.WorldHooks
-	return {
+	return table.freeze {
 		insert = {},
 		remove = {},
 		change = {},

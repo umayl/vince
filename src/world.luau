@@ -10,7 +10,7 @@ local types = require './types'
 local worldHooks = require './worldHooks'
 
 type Entity = types.Entity
-type Component<T = unknown> = types.Component<T>
+type Component<T = unknown> = types.Component
 type Archetype = types.Archetype
 
 type World = types.World
@@ -19,24 +19,24 @@ type WorldRemoveHook = types.WorldRemoveHook
 type WorldChangeHook = types.WorldChangeHook
 type WorldDespawnHook = types.WorldDespawnHook
 type WorldClearHook = types.WorldClearHook
+type WorldHookDisconnect = types.WorldHookDisconnect
 
 local ROOT_ARCHETYPE_KEY = ''
 
 -- Archetype Migration
 
 local function migrate(world: World, entity: Entity, newArchetype: Archetype, components: { Component })
-	local record = recordStore.get(world.records, entity)
-
+	local record = recordStore.get(world._records, entity)
 	local oldArchetype = record.archetype
-	local values = {}
 
+	local values = {}
 	for name in oldArchetype.componentSet do
 		values[name] = archetype.getComponentValue(oldArchetype, entity, name)
 	end
 
 	local movedEntity, movedIndex = archetype.removeEntity(oldArchetype, entity)
 	if movedEntity then
-		local movedRecord = recordStore.get(world.records, movedEntity)
+		local movedRecord = recordStore.get(world._records, movedEntity)
 
 		movedRecord.index = movedIndex :: number
 	end
@@ -62,12 +62,46 @@ local function migrate(world: World, entity: Entity, newArchetype: Archetype, co
 	end
 end
 
+-- Hooks
+
+local function addWorldHook<T>(hooks: { T }, callback: T): () -> ()
+	hooks[#hooks + 1] = callback
+
+	return function()
+		local index = table.find(hooks, callback)
+
+		if index then
+			table.remove(hooks, index)
+		end
+	end
+end
+
+local function onInsert(self: World, callback: WorldInsertHook): WorldHookDisconnect
+	return addWorldHook(self._hooks.insert, callback)
+end
+
+local function onRemove(self: World, callback: WorldRemoveHook): WorldHookDisconnect
+	return addWorldHook(self._hooks.remove, callback)
+end
+
+local function onChange(self: World, callback: WorldChangeHook): WorldHookDisconnect
+	return addWorldHook(self._hooks.change, callback)
+end
+
+local function onDespawn(self: World, callback: WorldDespawnHook): WorldHookDisconnect
+	return addWorldHook(self._hooks.despawn, callback)
+end
+
+local function onClear(self: World, callback: WorldClearHook): WorldHookDisconnect
+	return addWorldHook(self._hooks.clear, callback)
+end
+
 -- Components
 
 local function insert(self: World, entity: Entity, ...)
 	local componentsToInsert: { Component } = { ... }
 
-	local record = recordStore.get(self.records, entity)
+	local record = recordStore.get(self._records, entity)
 	if not record then
 		return
 	end
@@ -108,11 +142,11 @@ local function insert(self: World, entity: Entity, ...)
 		return
 	end
 
-	local newArchetype = archetypeStore.getOrCreate(self.archetypes, componentsToInsert)
+	local newArchetype = archetypeStore.getOrCreate(self._archetypes, componentsToInsert)
 	migrate(self, entity, newArchetype, componentsToInsert)
 
 	for _, component in insertedComponents do
-		for _, callback in self.hooks.insert do
+		for _, callback in self._hooks.insert do
 			callback(entity, component)
 		end
 	end
@@ -121,7 +155,7 @@ end
 local function remove(self: World, entity: Entity, ...: Component)
 	local componentsToRemove: { Component } = { ... }
 
-	local record = recordStore.get(self.records, entity)
+	local record = recordStore.get(self._records, entity)
 	if not record then
 		return
 	end
@@ -162,18 +196,18 @@ local function remove(self: World, entity: Entity, ...: Component)
 		return
 	end
 
-	local newArchetype = archetypeStore.getOrCreate(self.archetypes, remainingComponents)
+	local newArchetype = archetypeStore.getOrCreate(self._archetypes, remainingComponents)
 	migrate(self, entity, newArchetype, remainingComponents)
 
 	for _, component in removedComponents do
-		for _, callback in self.hooks.remove do
+		for _, callback in self._hooks.remove do
 			callback(entity, component)
 		end
 	end
 end
 
 local function has(self: World, entity: Entity, ...: Component): boolean
-	local record = recordStore.get(self.records, entity)
+	local record = recordStore.get(self._records, entity)
 	if not record then
 		return false
 	end
@@ -190,7 +224,7 @@ local function has(self: World, entity: Entity, ...: Component): boolean
 end
 
 local function get(self: World, entity: Entity, component: Component): types.ComponentAccessor?
-	local record = recordStore.get(self.records, entity)
+	local record = recordStore.get(self._records, entity)
 	if not record then
 		return
 	end
@@ -203,7 +237,7 @@ local function get(self: World, entity: Entity, component: Component): types.Com
 	end
 
 	return componentAccessor(column, record.index, function()
-		for _, callback in self.hooks.change do
+		for _, callback in self._hooks.change do
 			callback(entity, component.name)
 		end
 	end)
@@ -212,14 +246,14 @@ end
 -- Entity Lifecycle
 
 local function exists(self: World, entity: Entity): boolean
-	return recordStore.get(self.records, entity) ~= nil
+	return recordStore.get(self._records, entity) ~= nil
 end
 
 local function spawn(self: World): Entity
-	local records = self.records
-	local rootArchetype = self.rootArchetype
+	local records = self._records
+	local rootArchetype = self._rootArchetype
 
-	local newEntity = entityStore.allocate(self.entities)
+	local newEntity = entityStore.allocate(self._entities)
 	local newEntityIndex = archetype.addEntity(rootArchetype, newEntity)
 	recordStore.insert(records, newEntity, rootArchetype, newEntityIndex)
 
@@ -227,35 +261,35 @@ local function spawn(self: World): Entity
 end
 
 local function despawn(self: World, entity: Entity)
-	local record = recordStore.get(self.records, entity)
+	local record = recordStore.get(self._records, entity)
 	if not record then
 		return
 	end
 
 	archetype.removeEntity(record.archetype, entity)
-	recordStore.remove(self.records, entity)
+	recordStore.remove(self._records, entity)
 
-	for _, callback in self.hooks.despawn do
+	for _, callback in self._hooks.despawn do
 		callback(entity)
 	end
 end
 
 local function clear(self: World)
-	table.clear(self.records.records)
-	table.clear(self.archetypes.archetypes)
-	table.clear(self.archetypes.componentArchetypes)
+	table.clear(self._records.records)
+	table.clear(self._archetypes.archetypes)
+	table.clear(self._archetypes.componentArchetypes)
 
-	table.clear(self.rootArchetype.entities)
-	table.clear(self.rootArchetype.entityIndex)
+	table.clear(self._rootArchetype.entities)
+	table.clear(self._rootArchetype.entityIndex)
 
-	for _, column in self.rootArchetype.columns do
+	for _, column in self._rootArchetype.columns do
 		table.clear(column)
 	end
 
-	self.entities.nextEntityId = 0
-	self.archetypes.archetypes[ROOT_ARCHETYPE_KEY] = self.rootArchetype
+	self._entities.nextEntityId = 0
+	self._archetypes.archetypes[ROOT_ARCHETYPE_KEY] = self._rootArchetype
 
-	for _, callback in self.hooks.clear do
+	for _, callback in self._hooks.clear do
 		callback()
 	end
 end
@@ -270,33 +304,13 @@ local function world(): World
 	local rootArchetype = archetype.create {}
 	local hooks = worldHooks()
 
-	local function onInsert(self: World, callback: WorldInsertHook)
-		self.hooks.insert[#self.hooks.insert + 1] = callback
-	end
-
-	local function onRemove(self: World, callback: WorldRemoveHook)
-		self.hooks.remove[#self.hooks.remove + 1] = callback
-	end
-
-	local function onChange(self: World, callback: WorldChangeHook)
-		self.hooks.change[#self.hooks.change + 1] = callback
-	end
-
-	local function onDespawn(self: World, callback: WorldDespawnHook)
-		self.hooks.despawn[#self.hooks.despawn + 1] = callback
-	end
-
-	local function onClear(self: World, callback: WorldClearHook)
-		self.hooks.clear[#self.hooks.clear + 1] = callback
-	end
-
 	return table.freeze {
-		entities = entities,
-		archetypes = archetypes,
-		records = records,
+		_entities = entities,
+		_archetypes = archetypes,
+		_records = records,
 
-		rootArchetype = rootArchetype,
-		hooks = hooks,
+		_rootArchetype = rootArchetype,
+		_hooks = hooks,
 
 		-- Entity lifecycle
 		spawn = spawn,
@@ -304,18 +318,18 @@ local function world(): World
 		clear = clear,
 		exists = exists,
 
-		-- Components
-		insert = insert,
-		remove = remove,
-		has = has,
-		get = get,
-
 		-- Hooks
 		onInsert = onInsert,
 		onRemove = onRemove,
 		onChange = onChange,
 		onDespawn = onDespawn,
 		onClear = onClear,
+
+		-- Components
+		insert = insert,
+		remove = remove,
+		has = has,
+		get = get,
 
 		-- Queries
 		query = query,

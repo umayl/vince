@@ -12,7 +12,7 @@ local function queryMatcher(world: World, targetComponents: { Component }, exclu
 	local counts = {}
 
 	for _, component in targetComponents do
-		local archetypes = archetypeStore.getComponentArchetypes(world.archetypes, component.name)
+		local archetypes = archetypeStore.getComponentArchetypes(world._archetypes, component.name)
 		if not archetypes then
 			continue
 		end
