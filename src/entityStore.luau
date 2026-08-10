@@ -1,17 +1,17 @@
 --!strict
 
-local types = require './types'
+const types = require './types'
 
 type EntityStore = types.EntityStore
 
-local function create(): EntityStore
+const function create(): EntityStore
 	return {
 		nextEntityId = 0,
 	}
 end
 
-local function allocate(store: EntityStore)
-	local id = store.nextEntityId
+const function allocate(store: EntityStore)
+	const id = store.nextEntityId
 	store.nextEntityId += 1
 
 	return id

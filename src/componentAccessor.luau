@@ -1,14 +1,14 @@
 --!strict
 
-local types = require './types'
+const types = require './types'
 
-local function componentAccessor(column: { any }, index: number, onChange: (() -> ())?): types.ComponentAccessor
+const function componentAccessor(column: { any }, index: number, onChange: (() -> ())?): types.ComponentAccessor
 	return function(...)
 		if select('#', ...) == 0 then
 			return column[index]
 		end
 
-		local newValue = select(1, ...)
+		const newValue = select(1, ...)
 		column[index] = newValue
 
 		if onChange then

@@ -1,17 +1,17 @@
 --!strict
 
-local types = require './types'
+const types = require './types'
 
 type Entity = types.Entity
 type Component<T = unknown> = types.Component<T>
 type Archetype = types.Archetype
 
-local function create(components: { Component }): Archetype
-	local componentSet = {}
-	local columns = {}
+const function create(components: { Component }): Archetype
+	const componentSet = {}
+	const columns = {}
 
 	for _, component in components do
-		local name = component.name
+		const name = component.name
 
 		componentSet[name] = true
 		columns[name] = {}
@@ -25,8 +25,8 @@ local function create(components: { Component }): Archetype
 	}
 end
 
-local function addEntity(archetype: Archetype, entity: Entity): number
-	local index = #archetype.entities + 1
+const function addEntity(archetype: Archetype, entity: Entity): number
+	const index = #archetype.entities + 1
 
 	archetype.entities[index] = entity
 	archetype.entityIndex[entity] = index
@@ -34,14 +34,14 @@ local function addEntity(archetype: Archetype, entity: Entity): number
 	return index
 end
 
-local function removeEntity(archetype: Archetype, entity: Entity): (Entity?, number?)
-	local index = archetype.entityIndex[entity]
+const function removeEntity(archetype: Archetype, entity: Entity): (Entity?, number?)
+	const index = archetype.entityIndex[entity]
 	if not index then
 		return
 	end
 
-	local lastIndex = #archetype.entities
-	local lastEntity = archetype.entities[lastIndex]
+	const lastIndex = #archetype.entities
+	const lastEntity = archetype.entities[lastIndex]
 
 	archetype.entities[index] = lastEntity
 	archetype.entities[lastIndex] = nil
@@ -65,18 +65,18 @@ local function removeEntity(archetype: Archetype, entity: Entity): (Entity?, num
 	return
 end
 
-local function getEntities(archetype: Archetype)
+const function getEntities(archetype: Archetype)
 	return archetype.entities
 end
 
-local function insertComponent(archetype: Archetype, entity: Entity, component: Component)
-	local column = archetype.columns[component.name]
+const function insertComponent(archetype: Archetype, entity: Entity, component: Component)
+	const column = archetype.columns[component.name]
 
 	if not column then
 		return
 	end
 
-	local index = archetype.entityIndex[entity]
+	const index = archetype.entityIndex[entity]
 
 	if not index then
 		return
@@ -85,14 +85,14 @@ local function insertComponent(archetype: Archetype, entity: Entity, component: 
 	column[index] = component.value
 end
 
-local function getComponent(archetype: Archetype, entity: Entity, component: Component): Component?
-	local column = archetype.columns[component.name]
+const function getComponent(archetype: Archetype, entity: Entity, component: Component): Component?
+	const column = archetype.columns[component.name]
 
 	if not column then
 		return
 	end
 
-	local index = archetype.entityIndex[entity]
+	const index = archetype.entityIndex[entity]
 
 	if not index then
 		return
@@ -104,14 +104,14 @@ local function getComponent(archetype: Archetype, entity: Entity, component: Com
 	}
 end
 
-local function getComponentValue(archetype: Archetype, entity: Entity, componentName: string): any
-	local column = archetype.columns[componentName]
+const function getComponentValue(archetype: Archetype, entity: Entity, componentName: string): any
+	const column = archetype.columns[componentName]
 
 	if not column then
 		return nil
 	end
 
-	local index = archetype.entityIndex[entity]
+	const index = archetype.entityIndex[entity]
 
 	if not index then
 		return nil
@@ -120,11 +120,11 @@ local function getComponentValue(archetype: Archetype, entity: Entity, component
 	return column[index]
 end
 
-local function getComponentColumn(archetype: Archetype, component: Component)
+const function getComponentColumn(archetype: Archetype, component: Component)
 	return archetype.columns[component.name]
 end
 
-local function hasComponent(archetype: Archetype, component: Component): boolean
+const function hasComponent(archetype: Archetype, component: Component): boolean
 	return archetype.componentSet[component.name] == true
 end
 

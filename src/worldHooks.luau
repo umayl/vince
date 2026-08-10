@@ -1,6 +1,6 @@
 --!strict
 
-local types = require './types'
+const types = require './types'
 
 const function worldHooks(): types.WorldHooks
 	return table.freeze {

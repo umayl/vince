@@ -1,8 +1,8 @@
 --!strict
 
-local types = require './types'
+const types = require './types'
 
-local function record(archetype: types.Archetype, index: number): types.Record
+const function record(archetype: types.Archetype, index: number): types.Record
 	return {
 		archetype = archetype,
 		index = index,

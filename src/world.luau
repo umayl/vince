@@ -1,13 +1,13 @@
 --!strict
 
-local archetype = require './archetype'
-local archetypeStore = require './archetypeStore'
-local componentAccessor = require './componentAccessor'
-local entityStore = require './entityStore'
-local query = require './query'
-local recordStore = require './recordStore'
-local types = require './types'
-local worldHooks = require './worldHooks'
+const archetype = require './archetype'
+const archetypeStore = require './archetypeStore'
+const componentAccessor = require './componentAccessor'
+const entityStore = require './entityStore'
+const query = require './query'
+const recordStore = require './recordStore'
+const types = require './types'
+const worldHooks = require './worldHooks'
 
 type Entity = types.Entity
 type Component<T = unknown> = types.Component
@@ -21,32 +21,32 @@ type WorldDespawnHook = types.WorldDespawnHook
 type WorldClearHook = types.WorldClearHook
 type WorldHookDisconnect = types.WorldHookDisconnect
 
-local ROOT_ARCHETYPE_KEY = ''
+const ROOT_ARCHETYPE_KEY = ''
 
 -- Archetype Migration
 
-local function migrate(world: World, entity: Entity, newArchetype: Archetype, components: { Component })
-	local record = recordStore.get(world._records, entity)
-	local oldArchetype = record.archetype
+const function migrate(world: World, entity: Entity, newArchetype: Archetype, components: { Component })
+	const record = recordStore.get(world._records, entity)
+	const oldArchetype = record.archetype
 
-	local values = {}
+	const values = {}
 	for name in oldArchetype.componentSet do
 		values[name] = archetype.getComponentValue(oldArchetype, entity, name)
 	end
 
-	local movedEntity, movedIndex = archetype.removeEntity(oldArchetype, entity)
+	const movedEntity, movedIndex = archetype.removeEntity(oldArchetype, entity)
 	if movedEntity then
-		local movedRecord = recordStore.get(world._records, movedEntity)
+		const movedRecord = recordStore.get(world._records, movedEntity)
 
 		movedRecord.index = movedIndex :: number
 	end
 
-	local newEntityIndex = archetype.addEntity(newArchetype, entity)
+	const newEntityIndex = archetype.addEntity(newArchetype, entity)
 	record.archetype = newArchetype
 	record.index = newEntityIndex
 
 	for name, value in values do
-		local column = newArchetype.columns[name]
+		const column = newArchetype.columns[name]
 
 		if column then
 			column[newEntityIndex] = value
@@ -64,11 +64,11 @@ end
 
 -- Hooks
 
-local function addWorldHook<T>(hooks: { T }, callback: T): () -> ()
+const function addWorldHook<T>(hooks: { T }, callback: T): () -> ()
 	hooks[#hooks + 1] = callback
 
 	return function()
-		local index = table.find(hooks, callback)
+		const index = table.find(hooks, callback)
 
 		if index then
 			table.remove(hooks, index)
@@ -76,37 +76,37 @@ local function addWorldHook<T>(hooks: { T }, callback: T): () -> ()
 	end
 end
 
-local function onInsert(self: World, callback: WorldInsertHook): WorldHookDisconnect
+const function onInsert(self: World, callback: WorldInsertHook): WorldHookDisconnect
 	return addWorldHook(self._hooks.insert, callback)
 end
 
-local function onRemove(self: World, callback: WorldRemoveHook): WorldHookDisconnect
+const function onRemove(self: World, callback: WorldRemoveHook): WorldHookDisconnect
 	return addWorldHook(self._hooks.remove, callback)
 end
 
-local function onChange(self: World, callback: WorldChangeHook): WorldHookDisconnect
+const function onChange(self: World, callback: WorldChangeHook): WorldHookDisconnect
 	return addWorldHook(self._hooks.change, callback)
 end
 
-local function onDespawn(self: World, callback: WorldDespawnHook): WorldHookDisconnect
+const function onDespawn(self: World, callback: WorldDespawnHook): WorldHookDisconnect
 	return addWorldHook(self._hooks.despawn, callback)
 end
 
-local function onClear(self: World, callback: WorldClearHook): WorldHookDisconnect
+const function onClear(self: World, callback: WorldClearHook): WorldHookDisconnect
 	return addWorldHook(self._hooks.clear, callback)
 end
 
 -- Components
 
-local function insert(self: World, entity: Entity, ...)
-	local componentsToInsert: { Component } = { ... }
+const function insert(self: World, entity: Entity, ...)
+	const componentsToInsert: { Component } = { ... }
 
-	local record = recordStore.get(self._records, entity)
+	const record = recordStore.get(self._records, entity)
 	if not record then
 		return
 	end
 
-	local currentArchetype = record.archetype
+	const currentArchetype = record.archetype
 
 	for name in currentArchetype.componentSet do
 		local alreadyRequested = false
@@ -130,7 +130,7 @@ local function insert(self: World, entity: Entity, ...)
 	end
 
 	-- Remember which components are actually new.
-	local insertedComponents: { Component } = {}
+	const insertedComponents: { Component } = {}
 
 	for _, component in { ... } do
 		if not archetype.hasComponent(currentArchetype, component) then
@@ -142,7 +142,7 @@ local function insert(self: World, entity: Entity, ...)
 		return
 	end
 
-	local newArchetype = archetypeStore.getOrCreate(self._archetypes, componentsToInsert)
+	const newArchetype = archetypeStore.getOrCreate(self._archetypes, componentsToInsert)
 	migrate(self, entity, newArchetype, componentsToInsert)
 
 	for _, component in insertedComponents do
@@ -152,17 +152,17 @@ local function insert(self: World, entity: Entity, ...)
 	end
 end
 
-local function remove(self: World, entity: Entity, ...: Component)
-	local componentsToRemove: { Component } = { ... }
+const function remove(self: World, entity: Entity, ...: Component)
+	const componentsToRemove: { Component } = { ... }
 
-	local record = recordStore.get(self._records, entity)
+	const record = recordStore.get(self._records, entity)
 	if not record then
 		return
 	end
 
-	local currentArchetype = record.archetype
-	local remainingComponents: { Component } = {}
-	local removedComponents: { Component } = {}
+	const currentArchetype = record.archetype
+	const remainingComponents: { Component } = {}
+	const removedComponents: { Component } = {}
 
 	for name in currentArchetype.componentSet do
 		local shouldRemove = false
@@ -177,7 +177,7 @@ local function remove(self: World, entity: Entity, ...: Component)
 			break
 		end
 
-		local value = archetype.getComponentValue(currentArchetype, entity, name)
+		const value = archetype.getComponentValue(currentArchetype, entity, name)
 
 		if shouldRemove then
 			removedComponents[#removedComponents + 1] = {
@@ -196,7 +196,7 @@ local function remove(self: World, entity: Entity, ...: Component)
 		return
 	end
 
-	local newArchetype = archetypeStore.getOrCreate(self._archetypes, remainingComponents)
+	const newArchetype = archetypeStore.getOrCreate(self._archetypes, remainingComponents)
 	migrate(self, entity, newArchetype, remainingComponents)
 
 	for _, component in removedComponents do
@@ -206,13 +206,13 @@ local function remove(self: World, entity: Entity, ...: Component)
 	end
 end
 
-local function has(self: World, entity: Entity, ...: Component): boolean
-	local record = recordStore.get(self._records, entity)
+const function has(self: World, entity: Entity, ...: Component): boolean
+	const record = recordStore.get(self._records, entity)
 	if not record then
 		return false
 	end
 
-	local currentArchetype = record.archetype
+	const currentArchetype = record.archetype
 
 	for _, component in { ... } do
 		if not archetype.hasComponent(currentArchetype, component) then
@@ -223,15 +223,15 @@ local function has(self: World, entity: Entity, ...: Component): boolean
 	return true
 end
 
-local function get(self: World, entity: Entity, component: Component): types.ComponentAccessor?
-	local record = recordStore.get(self._records, entity)
+const function get(self: World, entity: Entity, component: Component): types.ComponentAccessor?
+	const record = recordStore.get(self._records, entity)
 	if not record then
 		return
 	end
 
-	local currentArchetype = record.archetype
+	const currentArchetype = record.archetype
 
-	local column = currentArchetype.columns[component.name]
+	const column = currentArchetype.columns[component.name]
 	if not column then
 		return
 	end
@@ -245,23 +245,23 @@ end
 
 -- Entity Lifecycle
 
-local function exists(self: World, entity: Entity): boolean
+const function exists(self: World, entity: Entity): boolean
 	return recordStore.get(self._records, entity) ~= nil
 end
 
-local function spawn(self: World): Entity
-	local records = self._records
-	local rootArchetype = self._rootArchetype
+const function spawn(self: World): Entity
+	const records = self._records
+	const rootArchetype = self._rootArchetype
 
-	local newEntity = entityStore.allocate(self._entities)
-	local newEntityIndex = archetype.addEntity(rootArchetype, newEntity)
+	const newEntity = entityStore.allocate(self._entities)
+	const newEntityIndex = archetype.addEntity(rootArchetype, newEntity)
 	recordStore.insert(records, newEntity, rootArchetype, newEntityIndex)
 
 	return newEntity
 end
 
-local function despawn(self: World, entity: Entity)
-	local record = recordStore.get(self._records, entity)
+const function despawn(self: World, entity: Entity)
+	const record = recordStore.get(self._records, entity)
 	if not record then
 		return
 	end
@@ -274,7 +274,7 @@ local function despawn(self: World, entity: Entity)
 	end
 end
 
-local function clear(self: World)
+const function clear(self: World)
 	table.clear(self._records.records)
 	table.clear(self._archetypes.archetypes)
 	table.clear(self._archetypes.componentArchetypes)
@@ -296,13 +296,13 @@ end
 
 -- World
 
-local function world(): World
-	local entities = entityStore.create()
-	local archetypes = archetypeStore.create()
-	local records = recordStore.create()
+const function world(): World
+	const entities = entityStore.create()
+	const archetypes = archetypeStore.create()
+	const records = recordStore.create()
 
-	local rootArchetype = archetype.create {}
-	local hooks = worldHooks()
+	const rootArchetype = archetype.create {}
+	const hooks = worldHooks()
 
 	return table.freeze {
 		_entities = entities,
