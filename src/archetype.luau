@@ -6,6 +6,19 @@ type Entity = types.Entity
 type Component<T = unknown> = types.Component<T>
 type Archetype = types.Archetype
 
+const function clone<T>(value: T): T
+	if type(value) ~= 'table' then
+		return value
+	end
+
+	const copy = {}
+	for key, child in value :: any do
+		copy[key] = clone(child)
+	end
+
+	return copy :: any
+end
+
 const function create(components: { Component }): Archetype
 	const componentSet = {}
 	const columns = {}
@@ -27,7 +40,6 @@ end
 
 const function addEntity(archetype: Archetype, entity: Entity): number
 	const index = #archetype.entities + 1
-
 	archetype.entities[index] = entity
 	archetype.entityIndex[entity] = index
 
@@ -71,29 +83,25 @@ end
 
 const function insertComponent(archetype: Archetype, entity: Entity, component: Component)
 	const column = archetype.columns[component.name]
-
 	if not column then
 		return
 	end
 
 	const index = archetype.entityIndex[entity]
-
 	if not index then
 		return
 	end
 
-	column[index] = component.value
+	column[index] = clone(component.value)
 end
 
 const function getComponent(archetype: Archetype, entity: Entity, component: Component): Component?
 	const column = archetype.columns[component.name]
-
 	if not column then
 		return
 	end
 
 	const index = archetype.entityIndex[entity]
-
 	if not index then
 		return
 	end
@@ -106,15 +114,13 @@ end
 
 const function getComponentValue(archetype: Archetype, entity: Entity, componentName: string): any
 	const column = archetype.columns[componentName]
-
 	if not column then
-		return nil
+		return
 	end
 
 	const index = archetype.entityIndex[entity]
-
 	if not index then
-		return nil
+		return
 	end
 
 	return column[index]
