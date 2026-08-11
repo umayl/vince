@@ -209,7 +209,6 @@ const function remove(self: World, entity: Entity, ...: Component)
 		end
 
 		const value = archetype.getComponentValue(currentArchetype, entity, name)
-
 		if shouldRemove then
 			removedComponents[#removedComponents + 1] = {
 				name = name,
@@ -244,11 +243,12 @@ const function has(self: World, entity: Entity, ...: Component): boolean
 	end
 
 	const currentArchetype = record.archetype
-
 	for _, component in { ... } do
-		if not archetype.hasComponent(currentArchetype, component) then
-			return false
+		if archetype.hasComponent(currentArchetype, component) then
+			continue
 		end
+
+		return false
 	end
 
 	return true
@@ -285,9 +285,7 @@ const function spawn(self: World): Entity
 	const rootArchetype = self._rootArchetype
 
 	const newEntity = entityStore.allocate(self._entities)
-
 	const newEntityIndex = archetype.addEntity(rootArchetype, newEntity)
-
 	recordStore.insert(records, newEntity, rootArchetype, newEntityIndex)
 
 	return newEntity
@@ -295,26 +293,20 @@ end
 
 const function despawn(self: World, entity: Entity)
 	const record = recordStore.get(self._records, entity)
-
 	if not record then
 		return
 	end
 
-	-- A despawn is effectively an exit from every query the entity
-	-- currently matches.
-	--
-	-- Calculate this before removing the entity because after removal
-	-- its archetype row may have been moved/cleared.
 	const exitedQueries: { Query } = {}
-
 	for observedQuery in self._observedQueries do
-		if observedQuery:_matches(record.archetype) then
-			exitedQueries[#exitedQueries + 1] = observedQuery
+		if not observedQuery:_matches(record.archetype) then
+			continue
 		end
+
+		exitedQueries[#exitedQueries + 1] = observedQuery
 	end
 
 	archetype.removeEntity(record.archetype, entity)
-
 	recordStore.remove(self._records, entity)
 
 	for _, observedQuery in exitedQueries do
