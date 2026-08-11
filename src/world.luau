@@ -10,8 +10,9 @@ const types = require './types'
 const worldHooks = require './worldHooks'
 
 type Entity = types.Entity
-type Component<T = unknown> = types.Component
+type Component<T = unknown> = types.Component<T>
 type Archetype = types.Archetype
+type Query = types.Query
 
 type World = types.World
 type WorldInsertHook = types.WorldInsertHook
@@ -19,7 +20,7 @@ type WorldRemoveHook = types.WorldRemoveHook
 type WorldChangeHook = types.WorldChangeHook
 type WorldDespawnHook = types.WorldDespawnHook
 type WorldClearHook = types.WorldClearHook
-type WorldHookDisconnect = types.WorldHookDisconnect
+type HookDisconnect = types.HookDisconnect
 
 const ROOT_ARCHETYPE_KEY = ''
 
@@ -27,7 +28,24 @@ const ROOT_ARCHETYPE_KEY = ''
 
 const function migrate(world: World, entity: Entity, newArchetype: Archetype, components: { Component })
 	const record = recordStore.get(world._records, entity)
+	if not record then
+		return
+	end
+
 	const oldArchetype = record.archetype
+	const enteredQueries: { Query } = {}
+	const exitedQueries: { Query } = {}
+
+	for observedQuery in world._observedQueries do
+		const wasMatching = observedQuery:_matches(oldArchetype)
+		const isMatching = observedQuery:_matches(newArchetype)
+
+		if not wasMatching and isMatching then
+			enteredQueries[#enteredQueries + 1] = observedQuery
+		elseif wasMatching and not isMatching then
+			exitedQueries[#exitedQueries + 1] = observedQuery
+		end
+	end
 
 	const values = {}
 	for name in oldArchetype.componentSet do
@@ -37,7 +55,6 @@ const function migrate(world: World, entity: Entity, newArchetype: Archetype, co
 	const movedEntity, movedIndex = archetype.removeEntity(oldArchetype, entity)
 	if movedEntity then
 		const movedRecord = recordStore.get(world._records, movedEntity)
-
 		movedRecord.index = movedIndex :: number
 	end
 
@@ -47,7 +64,6 @@ const function migrate(world: World, entity: Entity, newArchetype: Archetype, co
 
 	for name, value in values do
 		const column = newArchetype.columns[name]
-
 		if column then
 			column[newEntityIndex] = value
 		end
@@ -60,6 +76,24 @@ const function migrate(world: World, entity: Entity, newArchetype: Archetype, co
 
 		archetype.insertComponent(newArchetype, entity, component)
 	end
+
+	for _, observedQuery in enteredQueries do
+		observedQuery:_fireEnter(entity, newArchetype)
+	end
+
+	for _, observedQuery in exitedQueries do
+		observedQuery:_fireExit(entity)
+	end
+end
+
+-- Query observation
+
+const function observeQuery(self: World, queryToObserve: Query)
+	self._observedQueries[queryToObserve] = true
+end
+
+const function unobserveQuery(self: World, queryToObserve: Query)
+	self._observedQueries[queryToObserve] = nil
 end
 
 -- Hooks
@@ -76,23 +110,23 @@ const function addWorldHook<T>(hooks: { T }, callback: T): () -> ()
 	end
 end
 
-const function onInsert(self: World, callback: WorldInsertHook): WorldHookDisconnect
+const function onInsert(self: World, callback: WorldInsertHook): HookDisconnect
 	return addWorldHook(self._hooks.insert, callback)
 end
 
-const function onRemove(self: World, callback: WorldRemoveHook): WorldHookDisconnect
+const function onRemove(self: World, callback: WorldRemoveHook): HookDisconnect
 	return addWorldHook(self._hooks.remove, callback)
 end
 
-const function onChange(self: World, callback: WorldChangeHook): WorldHookDisconnect
+const function onChange(self: World, callback: WorldChangeHook): HookDisconnect
 	return addWorldHook(self._hooks.change, callback)
 end
 
-const function onDespawn(self: World, callback: WorldDespawnHook): WorldHookDisconnect
+const function onDespawn(self: World, callback: WorldDespawnHook): HookDisconnect
 	return addWorldHook(self._hooks.despawn, callback)
 end
 
-const function onClear(self: World, callback: WorldClearHook): WorldHookDisconnect
+const function onClear(self: World, callback: WorldClearHook): HookDisconnect
 	return addWorldHook(self._hooks.clear, callback)
 end
 
@@ -107,7 +141,6 @@ const function insert(self: World, entity: Entity, ...)
 	end
 
 	const currentArchetype = record.archetype
-
 	for name in currentArchetype.componentSet do
 		local alreadyRequested = false
 
@@ -129,9 +162,7 @@ const function insert(self: World, entity: Entity, ...)
 		end
 	end
 
-	-- Remember which components are actually new.
 	const insertedComponents: { Component } = {}
-
 	for _, component in { ... } do
 		if not archetype.hasComponent(currentArchetype, component) then
 			insertedComponents[#insertedComponents + 1] = component
@@ -223,7 +254,7 @@ const function has(self: World, entity: Entity, ...: Component): boolean
 	return true
 end
 
-const function get(self: World, entity: Entity, component: Component): types.ComponentAccessor?
+const function get<T>(self: World, entity: Entity, component: Component<T>): types.ComponentAccessor<T>?
 	const record = recordStore.get(self._records, entity)
 	if not record then
 		return
@@ -254,7 +285,9 @@ const function spawn(self: World): Entity
 	const rootArchetype = self._rootArchetype
 
 	const newEntity = entityStore.allocate(self._entities)
+
 	const newEntityIndex = archetype.addEntity(rootArchetype, newEntity)
+
 	recordStore.insert(records, newEntity, rootArchetype, newEntityIndex)
 
 	return newEntity
@@ -262,12 +295,31 @@ end
 
 const function despawn(self: World, entity: Entity)
 	const record = recordStore.get(self._records, entity)
+
 	if not record then
 		return
 	end
 
+	-- A despawn is effectively an exit from every query the entity
+	-- currently matches.
+	--
+	-- Calculate this before removing the entity because after removal
+	-- its archetype row may have been moved/cleared.
+	const exitedQueries: { Query } = {}
+
+	for observedQuery in self._observedQueries do
+		if observedQuery:_matches(record.archetype) then
+			exitedQueries[#exitedQueries + 1] = observedQuery
+		end
+	end
+
 	archetype.removeEntity(record.archetype, entity)
+
 	recordStore.remove(self._records, entity)
+
+	for _, observedQuery in exitedQueries do
+		observedQuery:_fireExit(entity)
+	end
 
 	for _, callback in self._hooks.despawn do
 		callback(entity)
@@ -310,28 +362,30 @@ const function world(): World
 		_records = records,
 
 		_rootArchetype = rootArchetype,
+
 		_hooks = hooks,
 
-		-- Entity lifecycle
+		_observedQueries = {},
+
 		spawn = spawn,
 		despawn = despawn,
 		clear = clear,
 		exists = exists,
 
-		-- Hooks
 		onInsert = onInsert,
 		onRemove = onRemove,
 		onChange = onChange,
 		onDespawn = onDespawn,
 		onClear = onClear,
 
-		-- Components
 		insert = insert,
 		remove = remove,
 		has = has,
 		get = get,
 
-		-- Queries
+		_observeQuery = observeQuery,
+		_unobserveQuery = unobserveQuery,
+
 		query = query,
 	} :: any
 end

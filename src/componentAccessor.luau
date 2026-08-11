@@ -2,7 +2,7 @@
 
 const types = require './types'
 
-const function componentAccessor(column: { any }, index: number, onChange: (() -> ())?): types.ComponentAccessor
+const function componentAccessor<T>(column: { any }, index: number, onChange: (() -> ())?): types.ComponentAccessor<T>
 	return function(...)
 		if select('#', ...) == 0 then
 			return column[index]
@@ -15,7 +15,7 @@ const function componentAccessor(column: { any }, index: number, onChange: (() -
 			onChange()
 		end
 
-		return newValue
+		return newValue :: T
 	end
 end
 

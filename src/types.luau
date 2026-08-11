@@ -42,36 +42,58 @@ export type ArchetypeStore = {
 	componentArchetypes: { [string]: { Archetype } },
 }
 
+-- Hooks
+
+export type HookDisconnect = () -> ()
+
 -- Queries
 
 export type QueryIterator<A, B, C, D, E, F, G> = (
 ) -> (
 	Entity?,
-	ComponentAccessor?,
-	ComponentAccessor?,
-	ComponentAccessor?,
-	ComponentAccessor?,
-	ComponentAccessor?,
-	ComponentAccessor?,
-	ComponentAccessor?
+	ComponentAccessor<A>?,
+	ComponentAccessor<B>?,
+	ComponentAccessor<C>?,
+	ComponentAccessor<D>?,
+	ComponentAccessor<E>?,
+	ComponentAccessor<F>?,
+	ComponentAccessor<G>?
 )
 
+export type QueryEnterHook<A, B, C, D, E, F, G> = (
+	Entity,
+	ComponentAccessor<A>?,
+	ComponentAccessor<B>?,
+	ComponentAccessor<C>?,
+	ComponentAccessor<D>?,
+	ComponentAccessor<E>?,
+	ComponentAccessor<F>?,
+	ComponentAccessor<G>?
+) -> ()
+
+export type QueryExitHook = (Entity) -> ()
+
 export type Query<A = unknown, B = unknown, C = unknown, D = unknown, E = unknown, F = unknown, G = unknown> = {
-	with: (self: Query<A, B, C, D, E, F, G>, ...Component) -> Query<A, B, C, D, E, F, G>,
-
-	without: (self: Query<A, B, C, D, E, F, G>, ...Component) -> Query<A, B, C, D, E, F, G>,
-
 	iter: (self: Query<A, B, C, D, E, F, G>) -> QueryIterator<A, B, C, D, E, F, G>,
+
+	onEnter: (self: Query<A, B, C, D, E, F, G>, callback: QueryEnterHook<A, B, C, D, E, F, G>) -> HookDisconnect,
+	onExit: (self: Query<A, B, C, D, E, F, G>, callback: QueryExitHook) -> HookDisconnect,
+
+	_matches: (self: Query<A, B, C, D, E, F, G>, archetype: Archetype) -> boolean,
+	_fireEnter: (self: Query<A, B, C, D, E, F, G>, entity: Entity, archetype: Archetype) -> (),
+	_fireExit: (self: Query<A, B, C, D, E, F, G>, entity: Entity) -> (),
 }
 
 -- World Hooks
 
-export type WorldHookDisconnect = () -> ()
-
 export type WorldInsertHook = (entity: Entity, component: Component) -> ()
+
 export type WorldRemoveHook = (entity: Entity, component: Component) -> ()
+
 export type WorldChangeHook = (entity: Entity, componentName: string) -> ()
+
 export type WorldDespawnHook = (entity: Entity) -> ()
+
 export type WorldClearHook = () -> ()
 
 export type WorldHooks = {
@@ -96,6 +118,9 @@ export type World = {
 	-- Hook storage
 	_hooks: WorldHooks,
 
+	-- Observed queries
+	_observedQueries: { [Query]: boolean },
+
 	-- Entity lifecycle
 	spawn: (self: World) -> Entity,
 	despawn: (self: World, entity: Entity) -> (),
@@ -103,17 +128,29 @@ export type World = {
 	exists: (self: World, entity: Entity) -> boolean,
 
 	-- Hooks
-	onInsert: (self: World, callback: WorldInsertHook) -> WorldHookDisconnect,
-	onRemove: (self: World, callback: WorldRemoveHook) -> WorldHookDisconnect,
-	onChange: (self: World, callback: WorldChangeHook) -> WorldHookDisconnect,
-	onDespawn: (self: World, callback: WorldDespawnHook) -> WorldHookDisconnect,
-	onClear: (self: World, callback: WorldClearHook) -> WorldHookDisconnect,
+	onInsert: (self: World, callback: WorldInsertHook) -> HookDisconnect,
+
+	onRemove: (self: World, callback: WorldRemoveHook) -> HookDisconnect,
+
+	onChange: (self: World, callback: WorldChangeHook) -> HookDisconnect,
+
+	onDespawn: (self: World, callback: WorldDespawnHook) -> HookDisconnect,
+
+	onClear: (self: World, callback: WorldClearHook) -> HookDisconnect,
 
 	-- Components
 	insert: (self: World, entity: Entity, ...Component) -> (),
+
 	remove: (self: World, entity: Entity, ...Component) -> (),
+
 	has: (self: World, entity: Entity, ...Component) -> boolean,
+
 	get: <T>(self: World, entity: Entity, component: Component<T>) -> ComponentAccessor<T>?,
+
+	-- Internal query observation
+	_observeQuery: (self: World, query: Query) -> (),
+
+	_unobserveQuery: (self: World, query: Query) -> (),
 
 	-- Queries
 	query: ((self: World) -> Query<unknown, unknown, unknown, unknown, unknown, unknown, unknown>) & (<A>(
