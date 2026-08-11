@@ -1,8 +1,8 @@
 --!strict
 
-const componentAccessor = require './componentAccessor'
-const queryIterator = require './queryIterator'
-const types = require './types'
+local componentAccessor = require './componentAccessor'
+local queryIterator = require './queryIterator'
+local types = require './types'
 
 type Entity = types.Entity
 type Component = types.Component
@@ -10,7 +10,7 @@ type Archetype = types.Archetype
 type World = types.World
 type HookDisconnect = types.HookDisconnect
 
-const function matches(archetype: Archetype, included: { Component }, excluded: { Component }): boolean
+local function matches(archetype: Archetype, included: { Component }, excluded: { Component }): boolean
 	for _, component in included do
 		if not archetype.componentSet[component.name] then
 			return false
@@ -26,19 +26,19 @@ const function matches(archetype: Archetype, included: { Component }, excluded: 
 	return true
 end
 
-const function createQuery<A, B, C, D, E, F, G>(
+local function createQuery<A, B, C, D, E, F, G>(
 	world: World,
 	included: { Component },
 	excluded: { Component }
 ): types.Query<A, B, C, D, E, F, G>
-	const enterHooks: { types.QueryEnterHook<A, B, C, D, E, F, G> } = {}
-	const exitHooks: { types.QueryExitHook } = {}
+	local enterHooks: { types.QueryEnterHook<A, B, C, D, E, F, G> } = {}
+	local exitHooks: { types.QueryExitHook } = {}
 
 	local isObserving = false
 
-	const self: any = {}
+	local self: any = {}
 
-	const function updateObservation()
+	local function updateObservation()
 		local shouldObserve = #enterHooks > 0 or #exitHooks > 0
 		if shouldObserve and not isObserving then
 			world:_observeQuery(self)
@@ -59,7 +59,7 @@ const function createQuery<A, B, C, D, E, F, G>(
 		updateObservation()
 
 		return function()
-			const index = table.find(enterHooks, callback)
+			local index = table.find(enterHooks, callback)
 			if index then
 				table.remove(enterHooks, index)
 			end
@@ -74,7 +74,7 @@ const function createQuery<A, B, C, D, E, F, G>(
 		updateObservation()
 
 		return function()
-			const index = table.find(exitHooks, callback)
+			local index = table.find(exitHooks, callback)
 			if index then
 				table.remove(exitHooks, index)
 			end
@@ -92,15 +92,15 @@ const function createQuery<A, B, C, D, E, F, G>(
 			return
 		end
 
-		const row = archetype.entityIndex[entity]
+		local row = archetype.entityIndex[entity]
 		if not row then
 			return
 		end
 
-		const accessors = table.create(#included) :: { types.ComponentAccessor<any> }
+		local accessors = table.create(#included) :: { types.ComponentAccessor<any> }
 
 		for index, component in included do
-			const column = archetype.columns[component.name]
+			local column = archetype.columns[component.name]
 
 			accessors[index] = componentAccessor(column, row, function()
 				for _, callback in world._hooks.change do
@@ -127,7 +127,7 @@ const function createQuery<A, B, C, D, E, F, G>(
 	return table.freeze(self)
 end
 
-const function query(world: World, ...: Component)
+local function query(world: World, ...: Component)
 	return createQuery(world, { ... }, {})
 end
 

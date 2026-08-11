@@ -1,35 +1,35 @@
 --!strict
 
-const archetype = require './archetype'
-const componentAccessor = require './componentAccessor'
-const queryMatcher = require './queryMatcher'
-const types = require './types'
+local archetype = require './archetype'
+local componentAccessor = require './componentAccessor'
+local queryMatcher = require './queryMatcher'
+local types = require './types'
 
 type Entity = types.Entity
 type Component = types.Component
 type Archetype = types.Archetype
 type World = types.World
 
-const function queryIterator<A, B, C, D, E, F, G>(
+local function queryIterator<A, B, C, D, E, F, G>(
 	world: World,
 	includedComponents: { Component },
 	excludedComponents: { Component }
 ): types.QueryIterator<A, B, C, D, E, F, G>
 	if #includedComponents == 0 then
-		const records = world._records.records
+		local records = world._records.records
 		local nextEntity: Entity?
 
 		return function()
 			while true do
-				const entity = next(records, nextEntity)
+				local entity = next(records, nextEntity)
 				nextEntity = entity
 
 				if not entity then
 					return
 				end
 
-				const record = records[entity]
-				const currentArchetype = record.archetype
+				local record = records[entity]
+				local currentArchetype = record.archetype
 
 				local excluded = false
 
@@ -48,7 +48,7 @@ const function queryIterator<A, B, C, D, E, F, G>(
 		end :: any
 	end
 
-	const matchingArchetypes = queryMatcher(world, includedComponents, excludedComponents)
+	local matchingArchetypes = queryMatcher(world, includedComponents, excludedComponents)
 
 	local archetypeIndex = 1
 	local entityIndex = 1
@@ -72,13 +72,13 @@ const function queryIterator<A, B, C, D, E, F, G>(
 				continue
 			end
 
-			const currentEntity = currentEntities[entityIndex]
+			local currentEntity = currentEntities[entityIndex]
 
 			if currentEntity and currentArchetype then
-				const row = currentArchetype.entityIndex[currentEntity]
+				local row = currentArchetype.entityIndex[currentEntity]
 				entityIndex += 1
 
-				const accessors = table.create(#includedComponents)
+				local accessors = table.create(#includedComponents)
 
 				for i, component in includedComponents do
 					accessors[i] = componentAccessor(currentArchetype.columns[component.name], row)

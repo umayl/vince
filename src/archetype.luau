@@ -1,17 +1,17 @@
 --!strict
 
-const types = require './types'
+local types = require './types'
 
 type Entity = types.Entity
 type Component<T = unknown> = types.Component<T>
 type Archetype = types.Archetype
 
-const function clone<T>(value: T): T
+local function clone<T>(value: T): T
 	if type(value) ~= 'table' then
 		return value
 	end
 
-	const copy = {}
+	local copy = {}
 	for key, child in value :: any do
 		copy[key] = clone(child)
 	end
@@ -19,12 +19,12 @@ const function clone<T>(value: T): T
 	return copy :: any
 end
 
-const function create(components: { Component }): Archetype
-	const componentSet = {}
-	const columns = {}
+local function create(components: { Component }): Archetype
+	local componentSet = {}
+	local columns = {}
 
 	for _, component in components do
-		const name = component.name
+		local name = component.name
 
 		componentSet[name] = true
 		columns[name] = {}
@@ -38,22 +38,22 @@ const function create(components: { Component }): Archetype
 	}
 end
 
-const function addEntity(archetype: Archetype, entity: Entity): number
-	const index = #archetype.entities + 1
+local function addEntity(archetype: Archetype, entity: Entity): number
+	local index = #archetype.entities + 1
 	archetype.entities[index] = entity
 	archetype.entityIndex[entity] = index
 
 	return index
 end
 
-const function removeEntity(archetype: Archetype, entity: Entity): (Entity?, number?)
-	const index = archetype.entityIndex[entity]
+local function removeEntity(archetype: Archetype, entity: Entity): (Entity?, number?)
+	local index = archetype.entityIndex[entity]
 	if not index then
 		return
 	end
 
-	const lastIndex = #archetype.entities
-	const lastEntity = archetype.entities[lastIndex]
+	local lastIndex = #archetype.entities
+	local lastEntity = archetype.entities[lastIndex]
 
 	archetype.entities[index] = lastEntity
 	archetype.entities[lastIndex] = nil
@@ -77,17 +77,17 @@ const function removeEntity(archetype: Archetype, entity: Entity): (Entity?, num
 	return
 end
 
-const function getEntities(archetype: Archetype)
+local function getEntities(archetype: Archetype)
 	return archetype.entities
 end
 
-const function insertComponent(archetype: Archetype, entity: Entity, component: Component)
-	const column = archetype.columns[component.name]
+local function insertComponent(archetype: Archetype, entity: Entity, component: Component)
+	local column = archetype.columns[component.name]
 	if not column then
 		return
 	end
 
-	const index = archetype.entityIndex[entity]
+	local index = archetype.entityIndex[entity]
 	if not index then
 		return
 	end
@@ -95,13 +95,13 @@ const function insertComponent(archetype: Archetype, entity: Entity, component: 
 	column[index] = clone(component.value)
 end
 
-const function getComponent(archetype: Archetype, entity: Entity, component: Component): Component?
-	const column = archetype.columns[component.name]
+local function getComponent(archetype: Archetype, entity: Entity, component: Component): Component?
+	local column = archetype.columns[component.name]
 	if not column then
 		return
 	end
 
-	const index = archetype.entityIndex[entity]
+	local index = archetype.entityIndex[entity]
 	if not index then
 		return
 	end
@@ -112,13 +112,13 @@ const function getComponent(archetype: Archetype, entity: Entity, component: Com
 	}
 end
 
-const function getComponentValue(archetype: Archetype, entity: Entity, componentName: string): any
-	const column = archetype.columns[componentName]
+local function getComponentValue(archetype: Archetype, entity: Entity, componentName: string): any
+	local column = archetype.columns[componentName]
 	if not column then
 		return
 	end
 
-	const index = archetype.entityIndex[entity]
+	local index = archetype.entityIndex[entity]
 	if not index then
 		return
 	end
@@ -126,11 +126,11 @@ const function getComponentValue(archetype: Archetype, entity: Entity, component
 	return column[index]
 end
 
-const function getComponentColumn(archetype: Archetype, component: Component)
+local function getComponentColumn(archetype: Archetype, component: Component)
 	return archetype.columns[component.name]
 end
 
-const function hasComponent(archetype: Archetype, component: Component): boolean
+local function hasComponent(archetype: Archetype, component: Component): boolean
 	return archetype.componentSet[component.name] == true
 end
 

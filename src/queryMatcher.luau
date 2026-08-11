@@ -1,18 +1,18 @@
 --!strict
 
-const archetype = require './archetype'
-const archetypeStore = require './archetypeStore'
-const types = require './types'
+local archetype = require './archetype'
+local archetypeStore = require './archetypeStore'
+local types = require './types'
 
 type Component<T = unknown> = types.Component<T>
 type World = types.World
 
-const function queryMatcher(world: World, targetComponents: { Component }, excludedComponents: { Component })
-	const requiredCount = #targetComponents
-	const counts = {}
+local function queryMatcher(world: World, targetComponents: { Component }, excludedComponents: { Component })
+	local requiredCount = #targetComponents
+	local counts = {}
 
 	for _, component in targetComponents do
-		const archetypes = archetypeStore.getComponentArchetypes(world._archetypes, component.name)
+		local archetypes = archetypeStore.getComponentArchetypes(world._archetypes, component.name)
 		if not archetypes then
 			continue
 		end
@@ -22,7 +22,7 @@ const function queryMatcher(world: World, targetComponents: { Component }, exclu
 		end
 	end
 
-	const matching = {}
+	local matching = {}
 
 	for archetypeCandidate, count in counts do
 		if count ~= requiredCount then
